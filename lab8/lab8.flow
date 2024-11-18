@@ -1,0 +1,152 @@
+import rational;
+import expression;
+import ds/tree;
+import lingo/pegaction;
+import lingo/pegcode/driver;
+
+export {
+    parse(expStr: string, grammarStr: string) -> Exp;
+}
+
+buildSub(xs : [flow]) {
+    fold(xs[1], xs[0], \acc, x -> Binary(acc, x, SubOp()))
+}
+
+buildDiv(xs : [flow]) {
+    fold(xs[1], xs[0], \acc, x -> Binary(acc, x, DivOp()))
+}
+
+specialPegActions = {
+    t1 = setTree(defaultPegActions.t, "buildSub", buildSub);
+    t2 = setTree(t1, "buildDiv", buildDiv);
+    SemanticActions(t2);
+}
+
+parse(expStr: string, grammarStr: string) -> Exp {
+    grammar = compilePegGrammar(grammarStr);
+    parsic(grammar, expStr, specialPegActions);
+}
+
+
+
+simplifiedSum(left: Exp, right: Exp) -> Exp {
+    leftValue: Rational = getValue(left);
+    rightValue: Rational = getValue(right);
+
+    if (leftValue != nan() && rightValue != nan()) {
+        Const(sumRationals(leftValue, rightValue));
+    } else if (leftValue == zero()) {
+        right;
+    } else if (rightValue == zero()) {
+        left;
+    } else if (left == Neg(right) || right == Neg(left)) {
+        Int(0);
+    } else {
+        add(left, right);
+    }
+}
+    
+simplifiedSub(left: Exp, right: Exp) -> Exp {
+    leftValue: Rational = getValue(left);
+    rightValue: Rational = getValue(right);
+    if (leftValue != nan() && rightValue != nan()) {
+        Const(subRationals(leftValue, rightValue));
+    } else if (leftValue == zero()) {
+        Neg(right);
+    } else if (rightValue == zero()) {
+        left;
+    } else if (left == right) {
+        Int(0);
+    } else {
+        sub(left, right);
+    }
+}
+
+simplifiedMul(left: Exp, right: Exp) -> Exp {
+    leftValue: Rational = getValue(left);
+    rightValue: Rational = getValue(right);
+    if (leftValue != nan() && rightValue != nan()) {
+        Const(mulRationals(leftValue, rightValue));
+    } else if (leftValue == zero() || rightValue == zero()) {
+        Int(0);
+    } else if (rightValue == one()) {
+        left;
+    } else if (leftValue == one()) {
+        right;
+    } else {
+        mul(left, right);
+    }
+}
+
+simplifiedDiv(left: Exp, right: Exp) -> Exp {
+    leftValue: Rational = getValue(left);
+    rightValue: Rational = getValue(right);
+    if (leftValue != nan() && rightValue != nan()) {
+        Const(divRationals(leftValue, rightValue));
+    } else if (rightValue == one()) {
+        left;
+    } else if (leftValue == zero()) {
+        Int(0);
+    } else {
+        div(left, right);
+    }
+}
+
+simplifiedBinary(left: Exp, right: Exp, op: BinaryOp) -> Exp {
+    switch(op) {
+        SumOp(): simplifiedSum(left, right);
+        SubOp(): simplifiedSub(left, right);
+        MulOp(): simplifiedMul(left, right);
+        DivOp(): simplifiedDiv(left, right);
+    };
+}
+
+simplifiedNeg(e: Exp) -> Exp {
+    value: Rational = getValue(e);
+    if (value != nan()) {
+        Const(mulRationals(int2rat(-1), value));
+    } else {
+        Neg(e);
+    }
+}
+
+simplify(e: Exp) -> Exp {
+    switch(e) {
+        Neg(e1): simplifiedNeg(e1);
+        Binary(left, right, op): {
+            ls: Exp = simplify(left);
+            rs: Exp = simplify(right);
+            simplifiedBinary(ls, rs, op);
+        }
+        default: e;
+    }
+}
+
+
+
+
+derive(e: Exp, varName: string) -> Exp {
+    switch(e) {
+        Var(name): if(name == varName) Int(1) else Int(0);
+        Neg(e1): simplifiedNeg(derive(e1, varName));
+        Binary(left, right, op): {
+            leftDer: Exp = derive(left, varName);
+            rightDer: Exp = derive(right, varName);
+            switch(op) {
+                SumOp(): simplifiedSum(leftDer, rightDer);
+                SubOp(): simplifiedSub(leftDer, rightDer);
+                MulOp(): simplifiedSum(simplifiedMul(left, rightDer), simplifiedMul(leftDer, right));
+                DivOp(): simplifiedDiv(simplifiedSub(simplifiedMul(leftDer, right), simplifiedMul(left, rightDer)), simplifiedMul(right, right));
+            };
+        }
+        default: Int(0);
+    }
+}
+
+main() {
+    str: string = " x / (x+1) + (x+2)/(x+3) + y ";
+    expression: Exp = parse(str, "#include lab8.lingo");
+    der: Exp = derive(expression, "x");
+    println(exp2s(der, 0));
+    quit(0);
+}

@@ -1,0 +1,89 @@
+import string;
+import lingo/pegcode/driver;
+
+Expr ::= Add, Mul, Const;
+Add(Left: Expr, Right: Expr);
+Mul(Left: Expr, Right: Expr);
+Const(Value: int);
+
+getValue(expr: Expr) -> int {
+    switch(expr) {
+        Add(Left, Right): getValue(Left) + getValue(Right);
+        Mul(Left, Right): getValue(Left) * getValue(Right);
+        Const(Value): Value;
+    }
+}
+
+leftSymbol(needBrackets: bool) -> string {
+    if (needBrackets) {
+        "(";
+    } else {""};
+}
+
+rightSymbol(needBrackets: bool) -> string {
+    if (needBrackets) {
+        ")";
+    } else {""};
+}
+
+getStr(expr: Expr, needBrackets: bool) -> string {
+    switch(expr) {
+        Add(Left, Right):  leftSymbol(needBrackets) + getStr(Left, false) + " + " + getStr(Right, false) + rightSymbol(needBrackets);
+        Mul(Left, Right): getStr(Left, true) + " * " + getStr(Right, true);
+        Const(Value): i2s(Value);
+    }
+}
+
+
+main() {
+    exprs: [Pair<string, int>] = [
+        Pair("1", 1),
+        Pair("10", 10),
+        Pair("(1)", 1),
+        Pair("(10)", 10),
+        
+        Pair("0 + 0", 0),
+        Pair("1 + 2", 3),
+        Pair("1 + 2 + 3", 6),
+        Pair("(1 + 2)", 3),
+        Pair("(1 + 2) + 3", 6),
+        Pair("1 + (2 + 3)", 6),
+
+        Pair("1 * 0", 0),
+        Pair("1 * 1", 1),
+        Pair("1 * 2", 2),
+        Pair("(1 * 2)", 2),
+        Pair("1 * 2 * 3", 6),
+        Pair("(1 * 2) * 3", 6),
+        Pair("1 * (2 * 3)", 6),
+
+        Pair("1 + 2 * 3", 7),
+        Pair("(1 + 2) * 3", 9),
+        Pair("1 * (2 + 3)", 5),
+        Pair("5 * (2 * 3) * 4", 120),
+        Pair("1 + (2 + 3) * 4", 21),
+        Pair("(1 + 2) * (3 + 4) * (5 + 6)", 231),
+        Pair("1 * (2 + 3) + 4 * (5 + 6) * 7", 313),
+        Pair("10 + 21 * 72", 1522),
+        Pair("1 + (2 + 3 + 4 + 5) + 6 + (7 + 8) * 9 + (9 * 8 + 7) * 65 + 43 * (2 + (1 + 0))", 5420),
+        // Pair("Hello", 0)
+    ];
+
+    grammar = compilePegGrammar("#include lab5.lingo");
+
+    fori(0, length(exprs) - 1, \i -> {
+        str: string = exprs[i].first;
+        expression = parsic(grammar, str, defaultPegActions);
+        
+        Value: int = getValue(expression);
+        if (expression != flow("PARSING FAILED")/* && Value != exprs[i].second */) {
+            a: bool = false;
+            println(getStr(expression, a));
+            println("Value = " + i2s(Value));
+            println("Expected value = " + i2s(exprs[i].second));
+            println("\n");
+        }
+    });
+
+    quit(0);
+}

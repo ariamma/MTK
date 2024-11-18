@@ -1,0 +1,47 @@
+import string;
+import ds/tree;
+import ds/array;
+
+inds(a: [int], m: int) -> [Pair<int, int>] {
+    foldi(a, [], \i, array1, x -> {foldi(a, array1, \j, array2, y -> {
+                                    if (i <= j && x + y == m) {
+                                        arrayPush(array2, Pair(i, j));
+                                    } else {
+                                        array2;
+                                    }
+                }
+            )
+        }
+    );
+}
+
+indsTree(a: [int], m: int) -> [Pair<int, int>] {
+    tree: Tree<int, [int]> = foldi(
+        a, makeTree(), \i, array, e -> {
+            treePushToArrayValue(array, e, i);
+        }
+    );
+    
+    foldi(
+        a, [], \i, array1, x -> {
+            fold(
+                getTreeArrayValue(tree,  m - x), array1, \array2, j -> {
+                    if (i <= j) {
+                        arrayPush(array2, Pair(i, j));
+                    } else {
+                        array2;
+                    }
+                }    
+            );
+        }
+
+    );
+}
+
+main() {
+    a: [int] = [0, 1, 2, -1, -2, 3, 0];
+    m: int = 0;
+    // println(inds(a, m));
+    println(indsTree(a, m));
+    quit(0);
+}

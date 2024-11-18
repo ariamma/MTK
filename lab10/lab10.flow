@@ -1,0 +1,36 @@
+import expression;
+import parsing;
+import simplification;
+import rule;
+
+main() {
+    grammar = "#include lab10.lingo";
+    rulesStr = "#include rules.txt";
+
+    tests = [
+        " (a + b + c) / (a + b + c) ",
+        " x + a - x ",
+        " x -x + a ",
+        " a + x - x ",
+        " (x / y) * y ",
+        " -(x + y) ",
+    ];
+
+    rules = parse(rulesStr, grammar);
+
+    fori(0, length(tests) - 1, \i -> {
+        str = tests[i];
+
+        expression = parse(str, grammar);
+        if (expression != makeSet()) {
+            simplified = simplify(expression, rules);
+            repr = exp2s(simplified);
+            println("Test " + i2s(i + 1));
+            println(exp2s(expression));
+            println(exp2s(simplified));
+            println("\n");
+        }
+    });
+
+    quit(0);
+}

@@ -1,0 +1,163 @@
+import string;
+import lingo/pegcode/driver;
+
+Expr ::= Add, Mul, Int;
+Add: (Left: Expr, Right: Expr);
+Mul: (Left: Expr, Right: Expr);
+Int: (Value: int);
+
+RPNSymbol ::= IntSymbol, AddSymbol, MulSymbol;
+IntSymbol : (Value: int);
+AddSymbol : ();
+MulSymbol : ();
+
+createRPNSymbol(str: string) -> RPNSymbol {
+    if (isDigits(str)) {
+        IntSymbol(s2i(str));
+    } else if (str == "+") {
+        AddSymbol();
+    } else {
+        MulSymbol();
+    }
+}
+
+getValue(expr: Expr) -> int {
+    switch(expr) {
+        Add(Left, Right): getValue(Left) + getValue(Right);
+        Mul(Left, Right): getValue(Left) * getValue(Right);
+        Int(Value): Value;
+    }
+}
+
+getRPNStr(expr: Expr) -> string {
+    switch(expr) {
+        Add(Left, Right): getRPNStr(Left) + " " + getRPNStr(Right) + " +";
+        Mul(Left, Right): getRPNStr(Left) + " " + getRPNStr(Right) + " *";
+        Int(Value): i2s(Value);
+    }
+}
+
+leftSymbol(isMult: bool) -> string {
+    if (isMult) {
+        "(";
+    } else {""};
+}
+
+rightSymbol(isMult: bool) -> string {
+    if (isMult) {
+        ")";
+    } else {""};
+}
+
+getArithmeticStr(expr: Expr, isMult: bool) -> string {
+    switch(expr) {
+        Add(Left, Right): leftSymbol(isMult) + getArithmeticStr(Left, false) + " + " + getArithmeticStr(Right, false) + rightSymbol(isMult);
+        Mul(Left, Right): getArithmeticStr(Left, true) + " * " + getArithmeticStr(Right, true);
+        Int(Value): i2s(Value);
+    }
+}
+
+getRPNValue(array: [Expr], symbol: RPNSymbol) -> [Expr] {
+    switch(symbol) {
+        IntSymbol(Value): arrayPush(array, Int(Value));
+        AddSymbol(): {
+            left: Expr = array[length(array) - 2];
+            right: Expr = array[length(array) - 1];
+            tmp1: [Expr] = removeIndex(array, length(array) - 1); //
+            tmp2: [Expr] = removeIndex(tmp1, length(tmp1) - 1);
+
+            arrayPush(tmp2, Add(left, right));
+        }
+        MulSymbol(): {
+            left: Expr = array[length(array) - 2];
+            right: Expr = array[length(array) - 1];
+            tmp1: [Expr] = removeIndex(array, length(array) - 1);
+            tmp2: [Expr] = removeIndex(tmp1, length(tmp1) - 1);
+            
+            arrayPush(tmp2, Mul(left, right));
+
+        }
+    } 
+}
+
+parseFromRPN(symbols: [flow]) -> Expr {
+    result: [Expr] = fold(symbols[0], [], getRPNValue);
+    result[0];
+}
+
+
+specialPegActions = {
+    t = setTree(defaultPegActions.t, "parseFromRPN", parseFromRPN);
+    SemanticActions(t);
+}
+
+main() {
+    exprs: [Pair<string, int>] = [
+        Pair("1", 1),
+        Pair("10", 10),
+
+        Pair("0 0 +", 0), // 0 + 0
+        Pair("1 2 +", 3), // 1 + 2
+
+        Pair("1 2 + 3 +", 6), // (1 + 2) + 3
+        Pair(" 1 2 3 + + ", 6), // 1 + (2 + 3)
+
+        Pair("1 2 + 3 + 4 +", 10), //  1 + 2 + 3 + 4
+        Pair("1 2 3 + + 4 +", 10), // 1 + (2 + 3) + 4
+        Pair("1 2 3 4 + + +", 10), // 1 + (2 + (3 + 4))
+
+        Pair("2 3 *", 6), // 2 * 3
+        Pair("1 0 * ", 0), // 1 * 0
+
+        Pair("1 2 3 * * ", 6), // 1 * (2 * 3)
+        Pair("1 2 * 3 * 4 *", 24), // 1 * 2 * 3 * 4
+        Pair("1 2 3 * * 4 *", 24), // 1 * (2 * 3) * 4
+
+        Pair("1 2 + 3 *", 9), // (1 + 2) * 3
+        Pair("1 2 3 * +", 7), // 1 + 2 * 3
+        Pair("1 2 3 + * ", 5), // 1 * (2 + 3)
+
+
+        Pair("1 2 3 + 4 * +", 21), // 1 + (2 + 3) * 4
+        Pair("1 2 + 3 4 + * 5 6 + *", 231), // (1 + 2) * (3 + 4) * (5 + 6)
+        Pair("6 2 3 + * 5 4 7 + * 9 * +", 525), // 6 * (2 + 3) + 5 * (4 + 7) * 9
+        
+        Pair("Hello!", 0),
+
+    ];
+
+    arithmeticGrammar = compilePegGrammar("#include lab6Arithmetic.lingo");
+    RPNGrammar = compilePegGrammar("#include lab6RPN.lingo");
+   
+    fori(0, length(exprs) - 1, \i -> {
+        RPNString: string = exprs[i].first;
+        expectedValue: int = exprs[i].second;
+
+        RPNExpression: Expr = parsic(RPNGrammar, RPNString, specialPegActions);
+
+        if (RPNExpression != flow("PARSING FAILED")) {
+
+            RPNvalue: int = getValue(RPNExpression);
+
+            arithmeticString: string = getArithmeticStr(RPNExpression, false);
+            arithmeticExpression: Expr = parsic(arithmeticGrammar, arithmeticString, defaultPegActions);
+            arithmeticValue: int = getValue(arithmeticExpression);
+
+            fromArithmeticToRPNString: string = getRPNStr(arithmeticExpression);
+            fromArithmeticToRPNExpression: Expr = parsic(RPNGrammar, fromArithmeticToRPNString, specialPegActions);
+            fromArithmeticToRPNValue: int = getValue(fromArithmeticToRPNExpression);
+
+            if (RPNvalue != arithmeticValue || RPNvalue != fromArithmeticToRPNValue || RPNvalue == expectedValue) {
+
+                // println(RPNString);
+                // println(arithmeticString);
+                // println(fromArithmeticToRPNString);
+
+                println(i2s(RPNvalue) + " " + i2s(arithmeticValue) + " " + i2s(fromArithmeticToRPNValue) + " " + i2s(expectedValue));
+                println("\n");
+            };   
+        }
+    });
+
+    quit(0);
+}

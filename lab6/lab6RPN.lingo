@@ -1,0 +1,8 @@
+exp = symbol+:t {parseFromRPN(:t)};
+
+symbol = ws int:t ws {:t} | ws '+' ws {AddSymbol()} | ws '*' ws {MulSymbol()};
+int = digit+$d {IntSymbol(s2i($d))};
+
+ws = s*;
+s = " " | "\t" | "\n";
+digit = '0'-'9';

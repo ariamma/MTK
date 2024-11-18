@@ -1,0 +1,10 @@
+exp = ws sum:e ws {:e};
+sum = mul:Left ws '+' ws sum:Right {Add(:Left,:Right)} | mul:e {:e};
+mul = base:Left ws '*' ws mul:Right {Mul(:Left,:Right)} | base:e {:e};
+base = int:e {:e} | '(' exp:e ')' {:e}; 
+
+int = digit+$d {Const(s2i($d))};
+digit = '0'-'9';
+
+ws = s*;
+s = " " | "\t" | "\n";

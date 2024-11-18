@@ -1,0 +1,74 @@
+import expression;
+import ds/tree;
+import ds/set;
+
+export {
+    SimplificationRule : (from: Exp, to: Exp);
+    getRuleRepr(rule: SimplificationRule) -> string;
+    tryToApplyRule(e: Exp, rule: SimplificationRule) -> Maybe<Exp>;
+}
+
+isRawReplacementTreeCorrect(rawReplacementTree: Tree<string, [Exp]>) -> bool {
+    foldTree(rawReplacementTree, true, \k, v, acc -> length(v) == 1 && acc);
+}
+
+replaceVars(e: Exp, replacementTree: Tree<string, Exp>) -> Exp {
+    switch(e) {
+        Var(name): lookupTreeDef(replacementTree, name, e); 
+        Neg(e1): Neg(replaceVars(e1, replacementTree));
+        Binary(l, r, op): Binary(replaceVars(l, replacementTree), replaceVars(r, replacementTree), op);
+        default: e;
+    }
+}
+
+mergeTreeArrayUnique(t1 : Tree<?, [??]>, t2 : Tree<?, [??]>) -> Tree<?, [??]> {
+    mergeTreeCustom(t1, t2, \k, a1, a2 -> {
+        set2array(buildSet(concat(a1, a2)));
+    })
+}
+
+getRuleRepr(rule: SimplificationRule) -> string {
+    exp2s(rule.from) + " -> " + exp2s(rule.to);
+}
+
+match(e: Exp, ruleFrom: Exp, matches: Tree<string, [Exp]>) -> Maybe<Tree<string, [Exp]>> {
+    switch(ruleFrom) {
+        Var(name): Some(treePushToArrayUnique(matches, name, e));
+
+        Neg(e2): {
+            switch(e) {
+                Neg(e1): match(e1, e2, matches);
+                default: None();
+            }
+        }
+        
+        Binary(l2, r2, op2): {
+            switch(e) {
+                Binary(l1, r1, op1): {
+                    if (op1 == op2) {
+                        m1 = match(l1, l2, matches);
+                        m2 = match(r1, r2, matches);
+                        maybeMap2(mergeTreeArrayUnique)(m1, m2);
+                    } else {
+                        None();
+                    }
+                }
+                default: None();
+            }
+        }
+
+        default: if (e == ruleFrom) Some(matches) else None();
+    }
+}
+
+tryToApplyRule(e: Exp, rule: SimplificationRule) -> Maybe<Exp> {
+    matches = match(e, rule.from, makeTree());
+
+    if (eitherMap(matches, isRawReplacementTreeCorrect, false)) {
+        matchesTree: Tree<string, [Exp]> = either(matches, makeTree());
+        replacementTree = mapTree(matchesTree, \a -> a[0]);
+        Some(replaceVars(rule.to, replacementTree));
+    } else {
+        None();
+    }
+}

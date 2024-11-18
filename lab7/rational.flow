@@ -1,0 +1,101 @@
+// import string;
+// import math/math;
+
+// export {
+//     Rational: (a: int, b: int);
+
+//     createRational(a: int, b: int) -> Rational {
+// 		_gcd: int = gcd(iabs(a), iabs(b));
+// 		Rational(isign(a) * isign(b) * iabs(a) / _gcd, iabs(b) / _gcd);
+// 	}
+
+//     int2rat(i: int) -> Rational {
+// 		Rational(i, 1);
+// 	}
+
+//     plusInf() -> Rational {	Rational(1, 0);	}
+// 	minusInf() -> Rational { Rational(-1, 0); }
+// 	nan() -> Rational { Rational(0, 0); }
+
+// 	isNumber(q: Rational) -> bool { q.b != 0; }
+// 	isZero(q: Rational) -> bool { q.a == 0 && q.b != 0; }
+
+// 	isPositive(q: Rational) -> bool { q.a * q.b > 0 || isPlusInf(q); }
+// 	isNegative(q: Rational) -> bool { q.a * q.b < 0 || isMinusInf(q); }
+// 	isPlusInf(q: Rational) -> bool { q == plusInf(); }
+// 	isMinusInf(q: Rational) -> bool { q == minusInf(); }
+// 	isInf(q: Rational) -> bool { isPlusInf(q) || isMinusInf(q); }
+//     isNan(q: Rational) -> bool { q == nan(); }
+
+//     sumRationals(q1: Rational, q2: Rational) -> Rational {
+// 		if (isNan(q1) || isNan(q2)) {
+// 			nan();
+// 		} else if ((isPlusInf(q1) && isMinusInf(q2)) || (isMinusInf(q1) && isPlusInf(q2))) {
+// 			nan();
+// 		} else if (isPlusInf(q1) || isPlusInf(q2)) {
+// 			plusInf();
+// 		} else if (isMinusInf(q1) || isMinusInf(q2)) {
+// 			minusInf();
+// 		} else {
+// 			a1: int = q1.a;
+// 			b1: int = q1.b;
+// 			a2: int = q2.a;
+// 			b2: int = q2.b;
+// 			createRational(a1 * b2 + a2 * b1, b1 * b2);
+// 		}
+// 	}
+
+// 	subRationals(q1: Rational, q2: Rational) -> Rational {
+// 		sumRationals(q1, Rational(-q2.a, q2.b));
+// 	}
+
+// 	mulRationals(q1: Rational, q2: Rational) -> Rational {
+// 		if (isNan(q1) || isNan(q2)) {
+// 			nan();
+// 		} else if ((isPlusInf(q1) && isPositive(q2)) || (isPlusInf(q2) && isPositive(q1))) {
+// 			plusInf();
+// 		} else if ((isMinusInf(q1) && isNegative(q2)) || (isMinusInf(q2) && isNegative(q1))) {
+// 			plusInf();
+// 		} else if ((isPlusInf(q1) && isNegative(q2)) || (isPlusInf(q2) && isNegative(q1))) {
+// 			minusInf();
+// 		} else if ((isMinusInf(q1) && isPositive(q2)) || (isMinusInf(q2) && isPositive(q1))) {
+// 			minusInf();
+// 		} else if ((isInf(q1) && isZero(q2)) || (isZero(q1) && isInf(q2))) {
+// 			nan();
+// 		} else {
+// 			createRational(q1.a * q2.a, q1.b * q2.b);
+// 		}
+// 	}
+
+// 	divRationals(q1: Rational, q2: Rational) -> Rational {
+// 		if (isNumber(q1) && isZero(q2)) {
+// 			if (isPositive(q1)) {
+// 				plusInf();
+// 			} else if (isZero(q1)) {
+// 				nan();
+// 			} else {
+// 				minusInf();
+// 			}
+// 		} else if (isZero(q1) && isNumber(q2)) {
+// 			int2rat(0);
+// 		} else if (isNan(q1) || isNan(q2)) {
+// 			nan();
+// 		} else {
+// 			mulRationals(q1, Rational(q2.b, q2.a));
+// 		}
+// 	}
+
+// 	rat2s(q: Rational) -> string {
+// 		if (isPlusInf(q)) {
+// 			"+inf";
+// 		} else if (isMinusInf(q)) {
+// 			"-inf";
+// 		} else if (isNan(q)) {
+// 			"nan";
+// 		} else if (q.b == 1) {
+// 			i2s(q.a);
+// 		} else {
+// 			i2s(q.a) + "/" + i2s(q.b);
+// 		}
+// 	}
+// }

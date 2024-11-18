@@ -1,0 +1,94 @@
+import rational;
+
+export {
+    BinaryOp ::= SumOp, SubOp, MulOp, DivOp;
+    SumOp : ();
+    SubOp : ();
+    MulOp : ();
+    DivOp : ();
+
+    Exp ::= Const, Int, Var, Neg, Binary;
+    Int : (i : int);
+    Const : (q : Rational);
+    Var : (name: string);
+    Neg : (e: Exp);
+    Binary : (left : Exp, right : Exp, op : BinaryOp);
+
+    add(left: Exp, right: Exp) -> Exp;
+    sub(left: Exp, right: Exp) -> Exp;
+    mul(left: Exp, right: Exp) -> Exp;
+    div(left: Exp, right: Exp) -> Exp;
+
+    exp2s(e: Exp, priority: int) -> string;
+    getValue(e: Exp) -> Rational;
+}
+
+add(left: Exp, right: Exp) -> Exp {
+    Binary(left, right, SumOp());
+}
+
+sub(left: Exp, right: Exp) -> Exp {
+    Binary(left, right, SubOp());
+}
+
+mul(left: Exp, right: Exp) -> Exp {
+    Binary(left, right, MulOp());
+}
+
+div(left: Exp, right: Exp) -> Exp {
+    Binary(left, right, DivOp());
+}
+
+exp2s(e: Exp, priority: int) -> string {
+    switch(e) {
+        Binary(left, right, op) : {
+            switch(op) {
+                SumOp(): {
+                    retStr = exp2s(left, 0) + "+" + exp2s(right, 0);
+                    if (priority == 1) {
+                        "(" + retStr + ")";
+                    } else {
+                        retStr
+                    }
+                }
+                SubOp(): {
+                    retStr = exp2s(left, 0) + "-" + exp2s(right, 1);
+                    if (priority == 1) {
+                        "(" + retStr + ")";
+                    } else {
+                        retStr
+                    }
+                }
+                MulOp(): {
+                    exp2s(left, 1) + "*" + exp2s(right, 1);
+                }
+                DivOp(): {
+                    exp2s(left, 1) + "/" + exp2s(right, 1);
+                }
+            };
+        }
+        Int(i): i2s(i);
+        Var(left): left;
+        Neg(left): "(-" + exp2s(left, 0) + ")";
+        Const(q): rat2s(q);
+    }
+}
+
+getValue(e: Exp) -> Rational {
+    switch(e) {
+        Int(i): int2rat(i);
+        Const(q): q;
+        Var(name): nan();
+        Neg(e1): mulRationals(int2rat(-1), getValue(e1));
+        Binary(left, right, op): {
+            lValue: Rational = getValue(left);
+            rValue: Rational = getValue(right);
+            switch(op) {
+                SumOp(): sumRationals(lValue, rValue);
+                SubOp(): subRationals(lValue, rValue);
+                MulOp(): mulRationals(lValue, rValue);
+                DivOp(): divRationals(lValue, rValue);
+            };
+        }
+    }
+}

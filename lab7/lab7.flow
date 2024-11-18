@@ -1,0 +1,147 @@
+import string;
+import lingo/pegcode/driver;
+import rational;
+
+Exp ::= Sum, Sub, Mul, Div, Int, Var, Neg;
+Sum : (a : Exp, b : Exp);
+Sub : (a: Exp, b : Exp);
+Mul : (a : Exp, b : Exp);
+Div : (a: Exp, b: Exp);
+Int : (i : int);
+Var : (name: string);
+Neg : (e: Exp);
+
+buildSub(xs : [flow]) {
+    fold(xs[1], xs[0], \acc, x -> Sub(acc, x))
+}
+
+buildDiv(xs : [flow]) {
+    fold(xs[1], xs[0], \acc, x -> Div(acc, x))
+}
+// rename
+isAlNum(s: string, start: int, stop: int) -> bool {
+    if (start == stop) {
+        true;
+    } else {
+        (isDigit(getCharAt(s, 0)) || isLetter(getCharAt(s, 0))) && isAlNum(s, start + 1, stop);
+    }
+}
+
+isVarName(s: string) -> bool {
+    isLetter(getCharAt(s, 0)) && isAlNum(s, 1, strlen(s));
+}
+
+getAllVarsNames(e: Exp, acc: Set<string>) -> Set<string> {
+    switch(e) {
+        Sum(a, b): mergeSetsA([acc, getAllVarsNames(a, makeSet()), getAllVarsNames(b, makeSet())]);
+        Sub(a, b): mergeSetsA([acc, getAllVarsNames(a, makeSet()), getAllVarsNames(b, makeSet())]);
+        Mul(a, b): mergeSetsA([acc, getAllVarsNames(a, makeSet()), getAllVarsNames(b, makeSet())]);
+        Div(a, b): mergeSetsA([acc, getAllVarsNames(a, makeSet()), getAllVarsNames(b, makeSet())]);
+        Int(i): acc;
+        Var(name): insertSet(acc, name);
+        Neg(a): getAllVarsNames(a, acc);
+    }
+}
+
+checkVar(var: string, varstree: Tree<string, Rational>) -> bool {
+    if (lookupTree(varstree, var) == None()) {
+        println("Unknown variable " + var);
+        false;
+    } else {
+        true;
+    }
+}
+
+checkVarsArray(a: [string], i: int, varstree: Tree<string, Rational>) -> bool {
+    if (i == length(a)) {
+        true;
+    } else {
+        checkVar(a[i], varstree) && checkVarsArray(a, i + 1, varstree);
+    }
+}
+
+checkVars(vars: Set<string>, varstree: Tree<string, Rational>) -> bool {
+    checkVarsArray(set2array(vars), 0, varstree);
+}
+
+getValueOfVar(varName: string, varstree: Tree<string, Rational>) -> Rational {
+    lookupTreeDef(varstree, varName, nan());
+}
+
+getValue(e: Exp, varstree: Tree<string, Rational>) -> Rational {
+    switch(e) {
+        Sum(a, b): sumRationals(getValue(a, varstree), getValue(b, varstree));
+        Sub(a, b): subRationals(getValue(a, varstree), getValue(b, varstree));
+        Mul(a, b): mulRationals(getValue(a, varstree), getValue(b, varstree));
+        Div(a, b): divRationals(getValue(a, varstree), getValue(b, varstree));
+        Int(i): int2rat(i);
+        Var(name): getValueOfVar(name, varstree);
+        Neg(a): mulRationals(int2rat(-1), getValue(a, varstree));
+    }
+}
+
+exp2s(e: Exp, priority: int) -> string {
+    switch(e) {
+        Sum(a, b) : {
+            retStr = exp2s(a, 1) + "+" + exp2s(b, 1);
+            if (priority == 2) {
+                "(" + retStr + ")";
+            } else {
+                retStr
+            }
+        }
+        Sub(a, b) : {
+            retStr = exp2s(a, 1) + "-" + exp2s(b, 1);
+            if (priority == 2) {
+                "(" + retStr + ")";
+            } else {
+                retStr
+            }
+        }
+        Mul(a, b) : {
+            exp2s(a, 2) + "*" + exp2s(b, 2);
+        }
+        Div(a, b) : {
+            exp2s(a, 2) + "/" + exp2s(b, 2);
+        }
+        Int(i): i2s(i);
+        Var(a): a;
+        Neg(a): "(-" + exp2s(a, 0) + ")";
+    }
+}
+
+grammar = compilePegGrammar("#include lab7.lingo");
+specialPegActions = {
+    t1 = setTree(defaultPegActions.t, "buildSub", buildSub);
+    t2 = setTree(t1, "buildDiv", buildDiv);
+    SemanticActions(t2);
+}
+
+main() {
+    varstree: Tree<string, Quotient> = setTreeValues(makeTree(), [
+        Pair("a", intQuotient(1)),
+        Pair("b", intQuotient(-3)),
+        Pair("c", intQuotient(42)),
+        Pair("x", createQuotient(1, 2)),
+        Pair("y", createQuotient(-4, 3)),
+        Pair("q", plusInf()),
+        Pair("z", nan()),
+        Pair("x1", intQuotient(1)),
+        Pair("x2", intQuotient(2)),
+    ]);
+       
+    str: string = "x + 1/2";
+    expression = parsic(grammar, str, specialPegActions);
+    vars: Set<string> = getAllVarsNames(expression, makeSet());
+
+    if (!checkVars(vars, varstree)) {
+        println(str);
+        println("\n");
+    } else if (expression != flow("PARSING FAILED") && getValue(expression, varstree) != tests[i].second) {
+        println(str + "     ->    " + getRepr(expression));
+        value: Rational = getValue(expression, varstree);
+        println("Value=" + getQuotientRepr(value));
+        println("Expected=" + getQuotientRepr(tests[i].second));
+        println("\n");
+    }
+}

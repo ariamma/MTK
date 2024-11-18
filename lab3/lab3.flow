@@ -1,0 +1,69 @@
+import string;
+import ds/array;
+
+fib(n : int) -> [int] {
+    if (n < 0) {
+        [];
+    } else if (n == 0) {
+        [0];
+    } else if (n == 1) {
+        [0, 1];
+    } else {
+        tmpArray: [int] = fib(n - 1);
+        arrayPush(tmpArray, tmpArray[n - 1] + tmpArray[n - 2]);
+    }
+}
+
+
+
+
+
+fib2r(n: int, array: [int], length: int) -> [int] {
+    if (n == 1) {
+        array;
+    } else {
+        tmpArray: [int] = arrayPush(array, array[length - 1] + array[length - 2]);
+        fib2r(n - 1, tmpArray, length + 1);
+    }
+}
+
+fib2(n: int) -> [int] {
+    if (n < 0) {
+        [];
+    } else if (n == 0) {
+        [0];
+    } else {
+        fib2r(n, [0, 1], 2)
+    }
+}
+
+
+fib3r(n: int, array: ref [int], length: int) -> [int] {
+    if (n == 1) {
+        ^array;
+    } else {
+        refArrayPush(array, ^array[length - 1] + ^array[length - 2]);
+        fib3r(n - 1, array, length + 1);
+    }
+}
+
+fib3(n: int) -> [int] {
+    if (n < 0) {
+        [];
+    } else if (n == 0) {
+        [0];
+    } else {
+        arr: ref [int] = ref [0, 1];
+        fib3r(n, arr, 2);
+        ^arr;
+    }
+}
+
+
+main() {
+    a = 10;
+    println(fib(a));
+    println(fib2(a));
+    println(fib3(a));
+    quit(0);
+}

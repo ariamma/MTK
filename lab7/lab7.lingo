@@ -1,0 +1,22 @@
+exp = ws notPriority:e ws {:e};
+
+notPriority = priority:e1 sub*:es ws '+' ws notPriority:e2 {Sum(buildSub(:e1, :es),:e2)} |
+                 priority:e1 sub*:es {buildSub(:e1, :es)};
+priority = term:e1 div*:es ws '*' ws priority:e2 {Mul(buildDiv(:e1, :es),:e2)} | 
+                term:e1 div*:es {buildDiv(:e1, :es)};
+
+div = ws '/' ws term:e {:e};
+sub = ws '-' ws priority:e {:e}; // rename
+
+term = neg | inBrackets | atom;
+neg = '-' int:e {Neg(:e)} | '-' var:e {Neg(:e)};
+inBrackets = '+'? '(' exp:e ')' {:e} |  '-(' exp:e ')' {Neg(:e)};
+atom = '+'? int:e {:e} | '+'? var:e {:e};
+
+int = digit+$d {Int(s2i($d))};
+var = (letter (letter | digit)*)$n {Var(:n)};
+
+letter = 'a' - 'z' | 'A' - 'Z';
+digit = '0'-'9';
+ws = s*;
+s = " " | "\t" | "\n";

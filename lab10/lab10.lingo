@@ -1,0 +1,38 @@
+exp = arithm_exp | rules_content;
+
+rules_content = comment_section rule*:rs {buildRules(:rs)} | comment_section;
+rule =  '#' exp:e1 '->' exp:e2 comment_section {SimplificationRule(:e1,:e2)};
+
+arithm_exp = ws notPriority:e ws {:e};
+
+notPriority = priority:e1 sub*:es ws '+' ws notPriority:e2 {Binary(buildSub(:e1, :es),:e2, SumOp())} | priority:e1 sub*:es {buildSub(:e1, :es)};
+priority = term:e1 div*:es ws '*' ws priority:e2 {Binary(buildDiv(:e1, :es),:e2, MulOp())} | term:e1 div*:es {buildDiv(:e1, :es)};
+
+div = ws '/' ws term:e {:e};
+sub = ws '-' ws priority:e {:e};
+
+term = neg | inBrackets | atom;
+neg = '-' int:e {Neg(:e)} | '-' var:e {Neg(:e)};
+inBrackets = '+'? '(' exp:e ')' {:e} |  '-(' exp:e ')' {Neg(:e)};
+atom = '+'? int:e {:e} | '+'? var:e {:e};
+int = digit+$d {Int(s2i($d))};
+var = (letter (letter | digit)*)$n {Var(:n)};
+
+comment_section = (comment "\n"*)*;
+letter = 'a' - 'z' | 'A' - 'Z';
+digit = '0'-'9';
+ws = s*;
+s = " " | "\t" | "\n";
+
+comment = '/' restOfComment;
+restOfComment = '*' nonstarchar_* "*/" restOfComment2?
+	| "**/" restOfComment2?
+	| '/' nonlinebreakchar_* '\n'
+	| '/\n';
+	restOfComment2 = restOfComment1* '\n';
+		restOfComment1 = ' ' | '\t';
+
+nonstarchar_ = !"*/" char_;
+nonlinebreakchar_ = !'\n' char_;
+lastLineComment = "//" nonlinebreakchar_*;
+char_ = '\u0000'-'\uFFFF';
