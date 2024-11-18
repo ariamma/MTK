@@ -1,0 +1,14 @@
+import string;
+
+main() {
+
+    // Запросите у пользователя ввести данные
+    //userInput = ();
+    // ввести массив
+    a = [0, 1, 2];
+    str = map(a, \i -> i2s(i));
+    result = strGlue(str, "");
+    println(str[1] == "1");
+    println(result);
+    quit(0);
+}
